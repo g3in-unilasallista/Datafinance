@@ -15,12 +15,56 @@ Fecha  : Septiembre 2026
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
 import os
+
+# ──────────────────────────────────────────────────────────────────
+# HELPER: hex → rgba
+# ──────────────────────────────────────────────────────────────────
+def hex_to_rgba(hex_color: str, alpha: float = 0.08) -> str:
+    """Convierte un color hexadecimal (#RRGGBB) a string rgba(R,G,B,A)."""
+    h = hex_color.lstrip("#")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return f"rgba({r},{g},{b},{alpha})"
+
+
+# ──────────────────────────────────────────────────────────────────
+# HELPER: cargar y mostrar archivo HTML embebido
+# ──────────────────────────────────────────────────────────────────
+GITHUB_PAGES_BASE = "https://g3in-unilasallista.github.io/Datafinance"
+
+HTML_URLS = {
+    "cotizacion_historica": f"{GITHUB_PAGES_BASE}/cotizacion_historica.html",
+    "inversion": f"{GITHUB_PAGES_BASE}/inversion.html",
+    "precio_promedio": f"{GITHUB_PAGES_BASE}/precio_promedio.html",
+}
+
+
+def render_html_chart(nombre: str, altura: int = 560) -> None:
+    """
+    Intenta leer el archivo HTML local y embebelo con st.components.v1.html().
+    Si no existe localmente (ej. Streamlit Cloud), lo carga vía iframe desde
+    GitHub Pages como fallback.
+    """
+    ruta_local = os.path.join(os.path.dirname(__file__), f"{nombre}.html")
+    if os.path.exists(ruta_local):
+        with open(ruta_local, "r", encoding="utf-8") as f:
+            html_content = f.read()
+        components.html(html_content, height=altura, scrolling=False)
+    else:
+        # Fallback: iframe hacia GitHub Pages
+        url = HTML_URLS.get(nombre, "")
+        iframe_html = (
+            f'<iframe src="{url}" width="100%" height="{altura}" '
+            f'frameborder="0" style="border:none;border-radius:12px;"></iframe>'
+        )
+        st.markdown(iframe_html, unsafe_allow_html=True)
+
 
 # ──────────────────────────────────────────────────────────────────
 # CONFIGURACIÓN DE PÁGINA
@@ -31,8 +75,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
-        "Get Help": "https://github.com/feibert-ufhec/analisis-financiero-python",
-        "Report a bug": "https://github.com/feibert-ufhec/analisis-financiero-python/issues",
+        "Get Help": "https://github.com/g3in-unilasallista/Datafinance",
+        "Report a bug": "https://github.com/g3in-unilasallista/Datafinance/issues",
         "About": "# Análisis Financiero con Python\nDesarrollado en el Semillero de Datos · UFHEC",
     },
 )
@@ -791,20 +835,15 @@ def pagina_dashboard(df: pd.DataFrame):
 
         st.plotly_chart(fig_hist, use_container_width=True)
 
-        # Botón para ver HTML original
+        # Gráfico HTML original embebido
+        with st.expander("📂 Ver visualización HTML original (Plotly completo)", expanded=False):
+            render_html_chart("cotizacion_historica", altura=560)
         st.markdown(
-            """
-            <div style="text-align:center;margin-top:0.5rem;">
-                <a href="cotizacion_historica.html" target="_blank"
-                   style="text-decoration:none;">
-                    <span style="background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);
-                    color:#818cf8;padding:0.45rem 1.2rem;border-radius:8px;font-size:0.82rem;
-                    font-weight:600;cursor:pointer;">
-                        🔗 Abrir visualización HTML original
-                    </span>
-                </a>
-            </div>
-            """,
+            f'<div style="text-align:center;margin-top:0.5rem;">'  
+            f'<a href="{HTML_URLS["cotizacion_historica"]}" target="_blank" style="text-decoration:none;">'
+            f'<span style="background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);'
+            f'color:#818cf8;padding:0.45rem 1.2rem;border-radius:8px;font-size:0.82rem;font-weight:600;">'
+            f'🔗 Abrir en GitHub Pages</span></a></div>',
             unsafe_allow_html=True,
         )
 
@@ -843,8 +882,7 @@ def pagina_dashboard(df: pd.DataFrame):
                     mode="lines",
                     line=dict(color=color_map_inv.get(ticker, "#818cf8"), width=2.5),
                     fill="tozeroy",
-                    fillcolor=color_map_inv.get(ticker, "#818cf8").replace("#", "rgba(")
-                    + ",0.04)".replace("rgba(", "rgba("),
+                    fillcolor=hex_to_rgba(color_map_inv.get(ticker, "#818cf8"), alpha=0.08),
                     hovertemplate=(
                         f"<b>{ticker}</b><br>"
                         "Fecha: %{x|%d %b %Y}<br>"
@@ -915,18 +953,15 @@ def pagina_dashboard(df: pd.DataFrame):
                     emoji=EMOJIS_TICKER.get(ticker, "📈"),
                 )
 
+        # Gráfico HTML original embebido (Inversión)
+        with st.expander("📂 Ver visualización HTML original (Plotly completo)", expanded=False):
+            render_html_chart("inversion", altura=560)
         st.markdown(
-            """
-            <div style="text-align:center;margin-top:1rem;">
-                <a href="inversion.html" target="_blank" style="text-decoration:none;">
-                    <span style="background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.4);
-                    color:#c084fc;padding:0.45rem 1.2rem;border-radius:8px;font-size:0.82rem;
-                    font-weight:600;">
-                        🔗 Abrir visualización HTML original
-                    </span>
-                </a>
-            </div>
-            """,
+            f'<div style="text-align:center;margin-top:1rem;">'
+            f'<a href="{HTML_URLS["inversion"]}" target="_blank" style="text-decoration:none;">'
+            f'<span style="background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.4);'
+            f'color:#c084fc;padding:0.45rem 1.2rem;border-radius:8px;font-size:0.82rem;font-weight:600;">'
+            f'🔗 Abrir en GitHub Pages</span></a></div>',
             unsafe_allow_html=True,
         )
 
@@ -983,17 +1018,15 @@ def pagina_dashboard(df: pd.DataFrame):
 
         st.plotly_chart(fig_barras, use_container_width=True)
 
+        # Gráfico HTML original embebido (Precio Promedio)
+        with st.expander("📂 Ver visualización HTML original (Plotly completo)", expanded=False):
+            render_html_chart("precio_promedio", altura=520)
         st.markdown(
-            """
-            <div style="text-align:center;margin-top:0.5rem;">
-                <a href="precio_promedio.html" target="_blank" style="text-decoration:none;">
-                    <span style="background:rgba(6,182,212,0.2);border:1px solid rgba(6,182,212,0.4);
-                    color:#38bdf8;padding:0.45rem 1.2rem;border-radius:8px;font-size:0.82rem;font-weight:600;">
-                        🔗 Abrir visualización HTML original
-                    </span>
-                </a>
-            </div>
-            """,
+            f'<div style="text-align:center;margin-top:0.5rem;">'
+            f'<a href="{HTML_URLS["precio_promedio"]}" target="_blank" style="text-decoration:none;">'
+            f'<span style="background:rgba(6,182,212,0.2);border:1px solid rgba(6,182,212,0.4);'
+            f'color:#38bdf8;padding:0.45rem 1.2rem;border-radius:8px;font-size:0.82rem;font-weight:600;">'
+            f'🔗 Abrir en GitHub Pages</span></a></div>',
             unsafe_allow_html=True,
         )
 
