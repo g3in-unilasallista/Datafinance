@@ -1,0 +1,1660 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Análisis Financiero con Python | UFHEC · Semillero de Datos</title>
+  <meta name="description"
+    content="Proyecto de análisis de precios de acciones AAPL, MSFT y NVDA desarrollado en Python con Plotly y Streamlit por el Semillero de Datos de la UFHEC." />
+  <meta property="og:title" content="Análisis Financiero con Python | UFHEC" />
+  <meta property="og:description"
+    content="Visualización interactiva y simulación de inversión con Apple, Microsoft y Nvidia." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+
+  <style>
+    /* ────────────── RESET & BASE ────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:   #6366f1;
+      --primary-l: #818cf8;
+      --violet:    #8b5cf6;
+      --violet-l:  #c084fc;
+      --cyan:      #06b6d4;
+      --cyan-l:    #38bdf8;
+      --green:     #10b981;
+      --green-l:   #34d399;
+      --amber:     #f59e0b;
+      --amber-l:   #fbbf24;
+      --red:       #ef4444;
+      --red-l:     #f87171;
+      --bg:        #0b0b18;
+      --bg2:       #12121f;
+      --bg3:       #1a1a2e;
+      --glass:     rgba(99,102,241,0.07);
+      --border:    rgba(99,102,241,0.22);
+      --text:      #f1f5f9;
+      --muted:     #94a3b8;
+      --faint:     #475569;
+      --card-h:    520px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
+
+    /* ────────────── SCROLLBAR ────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg2); }
+    ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 3px; }
+
+    /* ────────────── UTILITY ────────────── */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+    .gradient-text {
+      background: linear-gradient(135deg, var(--primary-l), var(--violet-l), var(--cyan-l));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 0;
+    }
+
+    /* ────────────── NAV ────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(11,11,24,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0.9rem 0;
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      text-decoration: none;
+    }
+    .nav-brand .icon { font-size: 1.4rem; }
+    .nav-brand .name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text);
+    }
+    .nav-brand .sub {
+      font-size: 0.68rem;
+      color: var(--muted);
+      font-weight: 400;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      list-style: none;
+      flex-wrap: wrap;
+    }
+    .nav-links a {
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 0.35rem 0.75rem;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); background: var(--glass); }
+    .nav-cta {
+      background: var(--primary) !important;
+      color: white !important;
+      font-weight: 600 !important;
+      padding: 0.4rem 1rem !important;
+    }
+    .nav-cta:hover { background: var(--violet) !important; }
+
+    /* ────────────── HERO ────────────── */
+    .hero {
+      position: relative;
+      padding: 6rem 0 5rem;
+      overflow: hidden;
+      text-align: center;
+    }
+    /* animated bg blobs */
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      animation: float 8s ease-in-out infinite alternate;
+    }
+    .blob-1 { width: 600px; height: 600px; background: rgba(99,102,241,0.12); top:-200px; left:-150px; }
+    .blob-2 { width: 500px; height: 500px; background: rgba(139,92,246,0.10); bottom:-150px; right:-100px; animation-delay: -3s; }
+    .blob-3 { width: 350px; height: 350px; background: rgba(6,182,212,0.08); top:30%; left:40%; animation-delay: -6s; }
+    @keyframes float {
+      from { transform: translateY(0) scale(1); }
+      to   { transform: translateY(-30px) scale(1.05); }
+    }
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(99,102,241,0.12);
+      border: 1px solid rgba(99,102,241,0.3);
+      color: var(--primary-l);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.35rem 1rem;
+      border-radius: 999px;
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      font-weight: 800;
+      line-height: 1.12;
+      margin-bottom: 1.2rem;
+      position: relative;
+    }
+    .hero p.lead {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: var(--muted);
+      max-width: 680px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.7;
+    }
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 3rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.3rem 0.85rem;
+      border-radius: 999px;
+      border: 1px solid;
+    }
+    .badge-indigo { background: rgba(99,102,241,0.14); border-color: rgba(99,102,241,0.4); color: var(--primary-l); }
+    .badge-violet { background: rgba(139,92,246,0.14); border-color: rgba(139,92,246,0.4); color: var(--violet-l); }
+    .badge-cyan   { background: rgba(6,182,212,0.14);  border-color: rgba(6,182,212,0.4);  color: var(--cyan-l); }
+    .badge-green  { background: rgba(16,185,129,0.14); border-color: rgba(16,185,129,0.4); color: var(--green-l); }
+    .badge-amber  { background: rgba(245,158,11,0.14); border-color: rgba(245,158,11,0.4); color: var(--amber-l); }
+    .badge-red    { background: rgba(239,68,68,0.14);  border-color: rgba(239,68,68,0.4);  color: var(--red-l); }
+
+    .hero-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 700;
+      padding: 0.75rem 1.8rem;
+      border-radius: 12px;
+      text-decoration: none;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 0 0 0 rgba(99,102,241,0.4);
+    }
+    .btn-primary:hover {
+      background: var(--violet);
+      box-shadow: 0 0 24px rgba(99,102,241,0.45);
+      transform: translateY(-1px);
+    }
+    .btn-ghost {
+      background: var(--glass);
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .btn-ghost:hover {
+      background: rgba(99,102,241,0.14);
+      border-color: rgba(99,102,241,0.5);
+      transform: translateY(-1px);
+    }
+
+    /* ────────────── STATS ROW ────────────── */
+    .stats {
+      padding: 2.5rem 0;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 2rem;
+      text-align: center;
+    }
+    .stat-item .num {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2.2rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 0.3rem;
+    }
+    .stat-item .label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ────────────── SECTION HEADER ────────────── */
+    .section { padding: 5rem 0; }
+    .section-tag {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--primary-l);
+      margin-bottom: 0.6rem;
+    }
+    .section-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      line-height: 1.18;
+      margin-bottom: 0.9rem;
+    }
+    .section-desc {
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 600px;
+      line-height: 1.7;
+    }
+
+    /* ────────────── PROBLEM ────────────── */
+    .problem-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      align-items: center;
+      margin-top: 3rem;
+    }
+    .problem-text p {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.85;
+      margin-bottom: 1rem;
+    }
+    .problem-text strong { color: var(--text); }
+    .highlight-box {
+      background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.08));
+      border: 1px solid rgba(99,102,241,0.3);
+      border-left: 4px solid var(--primary);
+      border-radius: 12px;
+      padding: 1.2rem 1.5rem;
+      margin-top: 1.5rem;
+      font-size: 0.95rem;
+      color: var(--text);
+      font-style: italic;
+      line-height: 1.6;
+    }
+    .tickers-box {
+      display: grid;
+      grid-template-rows: repeat(3, 1fr);
+      gap: 1rem;
+    }
+    .ticker-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.2rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: all 0.25s;
+      text-decoration: none;
+    }
+    .ticker-card:hover {
+      transform: translateX(6px);
+      border-color: rgba(99,102,241,0.5);
+      box-shadow: 0 0 20px rgba(99,102,241,0.1);
+    }
+    .ticker-logo {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      flex-shrink: 0;
+    }
+    .ticker-info .sym {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+    .ticker-info .name {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .ticker-return {
+      margin-left: auto;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    /* ────────────── SMART OBJECTIVES ────────────── */
+    .smart-bg { background: var(--bg2); }
+    .smart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.2rem;
+      margin-top: 3rem;
+    }
+    .smart-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      display: flex;
+      gap: 1rem;
+      transition: all 0.25s;
+    }
+    .smart-card:hover {
+      border-color: rgba(99,102,241,0.5);
+      box-shadow: 0 8px 30px rgba(99,102,241,0.1);
+      transform: translateY(-2px);
+    }
+    .smart-letter {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .smart-body h3 {
+      font-size: 0.88rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+    .smart-body p {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ────────────── VISUALIZATIONS ────────────── */
+    .viz-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.5rem;
+      margin-top: 3rem;
+    }
+    .viz-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      transition: all 0.3s;
+      display: flex;
+      flex-direction: column;
+    }
+    .viz-card:hover {
+      border-color: rgba(99,102,241,0.5);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+      transform: translateY(-4px);
+    }
+    .viz-preview {
+      height: 190px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .viz-preview::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0.35;
+    }
+    .viz-preview-1 {
+      background: linear-gradient(135deg, #1e1b4b, #312e81, #1e1b4b);
+    }
+    .viz-preview-2 {
+      background: linear-gradient(135deg, #2d1d4e, #4c1d95, #2d1d4e);
+    }
+    .viz-preview-3 {
+      background: linear-gradient(135deg, #0c3c4e, #155e75, #0c3c4e);
+    }
+    /* mini sparkline SVGs inside previews */
+    .sparkline {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      opacity: 0.5;
+    }
+    .viz-emoji { position: relative; z-index: 1; }
+    .viz-body {
+      padding: 1.4rem 1.5rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .viz-body h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+    .viz-body p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.6;
+      flex: 1;
+      margin-bottom: 1.2rem;
+    }
+    .viz-links {
+      display: flex;
+      gap: 0.6rem;
+    }
+    .viz-link {
+      flex: 1;
+      text-align: center;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.5rem 0.75rem;
+      border-radius: 9px;
+      text-decoration: none;
+      border: 1px solid;
+      transition: all 0.2s;
+    }
+    .viz-link:hover { transform: scale(1.03); }
+    .vl-primary { background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.4); color: var(--primary-l); }
+    .vl-primary:hover { background: rgba(99,102,241,0.28); }
+    .vl-violet  { background: rgba(139,92,246,0.15); border-color: rgba(139,92,246,0.4); color: var(--violet-l); }
+    .vl-violet:hover { background: rgba(139,92,246,0.28); }
+    .vl-cyan    { background: rgba(6,182,212,0.15);  border-color: rgba(6,182,212,0.4);  color: var(--cyan-l); }
+    .vl-cyan:hover { background: rgba(6,182,212,0.28); }
+
+    /* ────────────── DOCUMENTATION ────────────── */
+    .doc-bg { background: var(--bg2); }
+    .doc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.2rem;
+      margin-top: 3rem;
+    }
+    .doc-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.25s;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+    .doc-card:hover {
+      border-color: rgba(99,102,241,0.5);
+      box-shadow: 0 8px 28px rgba(99,102,241,0.12);
+      transform: translateY(-2px);
+    }
+    .doc-icon {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+    }
+    .doc-card h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+    .doc-card p {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.55;
+      flex: 1;
+    }
+    .doc-tag {
+      align-self: flex-start;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      border: 1px solid;
+    }
+
+    /* ────────────── DATASET ────────────── */
+    .dataset-layout {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 3rem;
+      align-items: start;
+      margin-top: 3rem;
+    }
+    .table-wrapper {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .table-header {
+      background: rgba(99,102,241,0.1);
+      padding: 0.85rem 1.2rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--primary-l);
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    thead tr { background: rgba(99,102,241,0.06); }
+    thead th {
+      padding: 0.8rem 1.2rem;
+      text-align: left;
+      font-weight: 700;
+      color: var(--primary-l);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr { border-bottom: 1px solid rgba(99,102,241,0.08); transition: background 0.15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(99,102,241,0.05); }
+    tbody td { padding: 0.75rem 1.2rem; color: var(--muted); }
+    tbody td strong { color: var(--text); font-family: 'JetBrains Mono', monospace; }
+    tbody td.mono { font-family: 'JetBrains Mono', monospace; color: var(--primary-l); }
+    .dataset-info { display: flex; flex-direction: column; gap: 1rem; }
+    .info-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.2rem 1.4rem;
+    }
+    .info-card .label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 0.3rem;
+    }
+    .info-card .value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    /* ────────────── TECH STACK ────────────── */
+    .tech-bg { background: var(--bg2); }
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 3rem;
+    }
+    .tech-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.2rem;
+      text-align: center;
+      transition: all 0.25s;
+    }
+    .tech-card:hover {
+      border-color: rgba(99,102,241,0.5);
+      transform: translateY(-2px);
+    }
+    .tech-card .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .tech-card .name {
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 0.2rem;
+    }
+    .tech-card .version {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .tech-card .role {
+      font-size: 0.75rem;
+      color: var(--faint);
+      margin-top: 0.3rem;
+    }
+
+    /* ────────────── TEAM ────────────── */
+    .team-center { text-align: center; }
+    .team-card {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem 2.5rem;
+      max-width: 480px;
+      margin: 3rem auto 0;
+      transition: all 0.3s;
+    }
+    .team-card:hover {
+      border-color: rgba(99,102,241,0.5);
+      box-shadow: 0 0 40px rgba(99,102,241,0.12);
+    }
+    .team-avatar {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--violet), var(--cyan));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+    }
+    .team-name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+    }
+    .team-role { color: var(--primary-l); font-weight: 600; font-size: 0.9rem; }
+    .team-org { color: var(--muted); font-size: 0.82rem; }
+    .team-links { display: flex; gap: 0.6rem; margin-top: 0.3rem; }
+    .team-links a {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.35rem 0.9rem;
+      border-radius: 8px;
+      border: 1px solid;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    /* ────────────── INSTALL ────────────── */
+    .install-bg { background: var(--bg2); }
+    .code-block {
+      background: #0d0d1a;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-top: 2rem;
+    }
+    .code-block-header {
+      background: rgba(99,102,241,0.08);
+      padding: 0.7rem 1.2rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--primary-l);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .code-dots { display: flex; gap: 0.35rem; }
+    .code-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+    pre {
+      padding: 1.4rem 1.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.75;
+      overflow-x: auto;
+      color: #cbd5e1;
+      white-space: pre;
+    }
+    .c-comment { color: #475569; }
+    .c-cmd     { color: var(--green-l); }
+    .c-str     { color: var(--amber-l); }
+    .c-kw      { color: var(--violet-l); }
+    .c-url     { color: var(--cyan-l); }
+
+    /* ────────────── CTA ────────────── */
+    .cta {
+      text-align: center;
+      padding: 6rem 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 800px 400px at 50% 50%, rgba(99,102,241,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      margin-bottom: 1rem;
+    }
+    .cta p {
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 520px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.7;
+    }
+
+    /* ────────────── FOOTER ────────────── */
+    footer {
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      padding: 2.5rem 0;
+    }
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-left .brand {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text);
+      margin-bottom: 0.3rem;
+    }
+    .footer-left .copy {
+      font-size: 0.75rem;
+      color: var(--faint);
+    }
+    .footer-links {
+      display: flex;
+      gap: 0.3rem;
+      list-style: none;
+    }
+    .footer-links a {
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 0.35rem 0.7rem;
+      border-radius: 7px;
+      transition: all 0.2s;
+    }
+    .footer-links a:hover { color: var(--text); background: var(--glass); }
+
+    /* ────────────── RESPONSIVE ────────────── */
+    @media (max-width: 768px) {
+      .problem-grid  { grid-template-columns: 1fr; }
+      .dataset-layout { grid-template-columns: 1fr; }
+      .tickers-box { margin-top: 2rem; }
+      .nav-links { display: none; }
+      .viz-grid  { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; align-items: flex-start; }
+    }
+
+    /* ────────────── SCROLL ANIMATIONS ────────────── */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ NAV ══════════════ -->
+<nav>
+  <div class="container">
+    <div class="nav-inner">
+      <a class="nav-brand" href="#inicio">
+        <span class="icon">📊</span>
+        <div>
+          <div class="name">Análisis Financiero</div>
+          <div class="sub">UFHEC · Semillero de Datos</div>
+        </div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#problema">Problema</a></li>
+        <li><a href="#objetivos">Objetivos</a></li>
+        <li><a href="#visualizaciones">Visualizaciones</a></li>
+        <li><a href="#documentacion">Documentación</a></li>
+        <li><a href="#dataset">Dataset</a></li>
+        <li><a href="#equipo">Equipo</a></li>
+        <li><a href="http://localhost:8501" target="_blank" class="nav-cta">🚀 Ver App</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- ══════════════ HERO ══════════════ -->
+<section class="hero" id="inicio">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+  <div class="container">
+    <div class="hero-eyebrow">
+      🏫 UFHEC · Semillero de Datos · Septiembre 2026
+    </div>
+    <h1>
+      <span class="gradient-text">Análisis Financiero</span><br />
+      con Python &amp; Streamlit
+    </h1>
+    <p class="lead">
+      Exploración visual, estadística y simulación de inversiones en
+      <strong>Apple (AAPL)</strong>, <strong>Microsoft (MSFT)</strong> y
+      <strong>Nvidia (NVDA)</strong> durante el período 2025–2026,
+      usando datos reales de mercado, Plotly y Gemini AI.
+    </p>
+    <div class="hero-badges">
+      <span class="badge badge-indigo">🐍 Python 3.11</span>
+      <span class="badge badge-red">⚡ Streamlit</span>
+      <span class="badge badge-violet">📊 Plotly</span>
+      <span class="badge badge-cyan">🐼 Pandas</span>
+      <span class="badge badge-green">🤖 Google Gemini AI</span>
+      <span class="badge badge-amber">☁️ Streamlit Cloud</span>
+      <span class="badge badge-indigo">🐙 GitHub</span>
+    </div>
+    <div class="hero-buttons">
+      <a href="http://localhost:8501" target="_blank" class="btn btn-primary">
+        🚀 Abrir Aplicación Streamlit
+      </a>
+      <a href="#visualizaciones" class="btn btn-ghost">
+        🖼️ Ver Visualizaciones
+      </a>
+      <a href="#documentacion" class="btn btn-ghost">
+        📚 Documentación
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ STATS ══════════════ -->
+<div class="stats">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="num gradient-text">252</div>
+        <div class="label">Días hábiles analizados</div>
+      </div>
+      <div class="stat-item">
+        <div class="num gradient-text">3</div>
+        <div class="label">Empresas tecnológicas</div>
+      </div>
+      <div class="stat-item">
+        <div class="num gradient-text">$1,000</div>
+        <div class="label">Capital de simulación USD</div>
+      </div>
+      <div class="stat-item">
+        <div class="num gradient-text">+37%</div>
+        <div class="label">Rendimiento máx. (AAPL)</div>
+      </div>
+      <div class="stat-item">
+        <div class="num gradient-text">5</div>
+        <div class="label">Tabs de análisis</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ PROBLEMA ══════════════ -->
+<section class="section" id="problema">
+  <div class="container">
+    <div class="section-tag">📌 Contexto</div>
+    <h2 class="section-title">Planteamiento del <span class="gradient-text">Problema</span></h2>
+    <div class="problem-grid fade-in">
+      <div class="problem-text">
+        <p>
+          En el contexto financiero actual, los inversores particulares y corporativos necesitan
+          herramientas accesibles que les permitan analizar el comportamiento histórico de acciones
+          bursátiles de manera <strong>visual, rápida y confiable</strong>.
+        </p>
+        <p>
+          Las plataformas de análisis profesional como Bloomberg Terminal o Reuters Eikon tienen un
+          costo prohibitivo. Python y el ecosistema open-source ofrecen una alternativa de
+          <strong>calidad profesional de forma gratuita</strong>.
+        </p>
+        <p>
+          Este proyecto demuestra cómo un analista de datos puede construir en pocas horas una
+          herramienta completa que antes requería meses de desarrollo y presupuestos elevados.
+        </p>
+        <div class="highlight-box">
+          💡 <strong>Pregunta central:</strong> ¿Cómo podemos utilizar Python y la Inteligencia
+          Artificial para democratizar el acceso al análisis financiero profesional?
+        </div>
+      </div>
+      <div class="tickers-box">
+        <div class="ticker-card">
+          <div class="ticker-logo" style="background:rgba(99,102,241,0.2)">🍎</div>
+          <div class="ticker-info">
+            <div class="sym" style="color:var(--primary-l)">AAPL</div>
+            <div class="name">Apple Inc. · Tecnología del Consumidor</div>
+          </div>
+          <div class="ticker-return" style="color:var(--green-l)">+37.4%</div>
+        </div>
+        <div class="ticker-card">
+          <div class="ticker-logo" style="background:rgba(239,68,68,0.2)">🪟</div>
+          <div class="ticker-info">
+            <div class="sym" style="color:var(--red-l)">MSFT</div>
+            <div class="name">Microsoft Corp. · Software &amp; Cloud</div>
+          </div>
+          <div class="ticker-return" style="color:var(--red-l)">−3.9%</div>
+        </div>
+        <div class="ticker-card">
+          <div class="ticker-logo" style="background:rgba(16,185,129,0.2)">💚</div>
+          <div class="ticker-info">
+            <div class="sym" style="color:var(--green-l)">NVDA</div>
+            <div class="name">Nvidia Corp. · Semiconductores &amp; IA</div>
+          </div>
+          <div class="ticker-return" style="color:var(--green-l)">+26.1%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════ SMART ══════════════ -->
+<section class="section smart-bg" id="objetivos">
+  <div class="container">
+    <div class="section-tag">🎯 Metodología</div>
+    <h2 class="section-title">Objetivos <span class="gradient-text">SMART</span></h2>
+    <p class="section-desc">
+      Cada objetivo fue diseñado siguiendo el marco SMART para asegurar claridad,
+      medibilidad y viabilidad del proyecto.
+    </p>
+    <div class="smart-grid">
+
+      <div class="smart-card fade-in">
+        <div class="smart-letter" style="background:rgba(99,102,241,0.2);color:var(--primary-l)">S</div>
+        <div class="smart-body">
+          <h3 style="color:var(--primary-l)">Específico (Specific)</h3>
+          <p>Analizar los precios de cierre históricos de AAPL, MSFT y NVDA durante
+          el período 2025–2026 usando Python, Pandas y Plotly, consumiendo datos desde
+          <code>precios_acciones.csv</code>.</p>
+        </div>
+      </div>
+
+      <div class="smart-card fade-in">
+        <div class="smart-letter" style="background:rgba(139,92,246,0.2);color:var(--violet-l)">M</div>
+        <div class="smart-body">
+          <h3 style="color:var(--violet-l)">Medible (Measurable)</h3>
+          <p>Generar <strong>3 visualizaciones interactivas</strong> clave: cotización histórica,
+          simulación de $1,000 USD y precio promedio, con métricas estadísticas cuantificables
+          (media, correlación, box plots).</p>
+        </div>
+      </div>
+
+      <div class="smart-card fade-in">
+        <div class="smart-letter" style="background:rgba(6,182,212,0.2);color:var(--cyan-l)">A</div>
+        <div class="smart-body">
+          <h3 style="color:var(--cyan-l)">Alcanzable (Achievable)</h3>
+          <p>Construir una app web funcional con Streamlit, desplegada en Streamlit Cloud,
+          con repositorio público en GitHub, consumiendo el CSV local sin dependencias
+          externas de red en tiempo de ejecución.</p>
+        </div>
+      </div>
+
+      <div class="smart-card fade-in">
+        <div class="smart-letter" style="background:rgba(16,185,129,0.2);color:var(--green-l)">R</div>
+        <div class="smart-body">
+          <h3 style="color:var(--green-l)">Relevante (Relevant)</h3>
+          <p>Aplica competencias del semillero (Python, pandas, plotly, IA generativa)
+          para resolver una necesidad real del sector financiero, alineado con los
+          objetivos del Semillero de Datos &amp; Tecnología de la UFHEC.</p>
+        </div>
+      </div>
+
+      <div class="smart-card fade-in">
+        <div class="smart-letter" style="background:rgba(245,158,11,0.2);color:var(--amber-l)">T</div>
+        <div class="smart-body">
+          <h3 style="color:var(--amber-l)">Temporal (Time-bound)</h3>
+          <p>El análisis cubre exactamente <strong>252 días hábiles</strong>
+          (septiembre 2025 – septiembre 2026), con todos los entregables completados
+          en el segundo semestre académico 2026.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════ VISUALIZACIONES ══════════════ -->
+<section class="section" id="visualizaciones">
+  <div class="container">
+    <div class="section-tag">🖼️ Artefactos</div>
+    <h2 class="section-title">Visualizaciones <span class="gradient-text">Interactivas</span></h2>
+    <p class="section-desc">
+      Tres gráficos generados con <strong>Plotly Express</strong> (template: plotly_dark)
+      desde el notebook <code>DataPython.ipynb</code>. Haz clic para abrirlos en tamaño completo.
+    </p>
+
+    <div class="viz-grid">
+
+      <!-- Cotización Histórica -->
+      <div class="viz-card fade-in">
+        <div class="viz-preview viz-preview-1">
+          <span class="viz-emoji">📉</span>
+          <svg class="sparkline" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg">
+            <polyline
+              points="0,70 30,60 60,55 90,65 120,45 150,50 180,35 210,38 240,25 270,30 300,20 330,22 370,15 400,18"
+              fill="none" stroke="rgba(129,140,248,0.7)" stroke-width="2.5" stroke-linecap="round"/>
+            <polyline
+              points="0,60 30,65 60,70 90,68 120,72 150,75 180,65 210,60 240,58 270,55 300,50 330,48 370,45 400,46"
+              fill="none" stroke="rgba(248,113,113,0.7)" stroke-width="2.5" stroke-linecap="round"/>
+            <polyline
+              points="0,75 30,68 60,72 90,70 120,65 150,60 180,55 210,50 240,45 270,48 300,40 330,35 370,32 400,30"
+              fill="none" stroke="rgba(52,211,153,0.7)" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="viz-body">
+          <h3>📉 Cotización Histórica</h3>
+          <p>Evolución de los <strong>precios de cierre ajustados</strong> de AAPL, MSFT y NVDA
+          durante septiembre 2025 – septiembre 2026. Gráfico de líneas con hover interactivo,
+          zoom y pan.</p>
+          <div class="viz-links">
+            <a href="cotizacion_historica.html" target="_blank" class="viz-link vl-primary">
+              🔗 Abrir HTML
+            </a>
+            <a href="http://localhost:8501" target="_blank" class="viz-link vl-primary">
+              ⚡ Ver en App
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inversión -->
+      <div class="viz-card fade-in">
+        <div class="viz-preview viz-preview-2">
+          <span class="viz-emoji">💰</span>
+          <svg class="sparkline" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg">
+            <polyline
+              points="0,60 40,55 80,50 120,42 160,35 200,28 240,22 280,18 320,15 360,10 400,8"
+              fill="none" stroke="rgba(192,132,252,0.7)" stroke-width="2.5" stroke-linecap="round"/>
+            <polyline
+              points="0,60 40,62 80,65 120,63 160,68 200,70 240,65 280,62 320,58 360,55 400,52"
+              fill="none" stroke="rgba(248,113,113,0.7)" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="viz-body">
+          <h3>💰 Simulación de Inversión</h3>
+          <p>¿Qué habría pasado con <strong>$1,000 USD</strong> invertidos al inicio?
+          Fórmula: <code>(Precio_t / Precio_0) × 1000</code>. Muestra el rendimiento
+          acumulado de cada empresa a lo largo del tiempo.</p>
+          <div class="viz-links">
+            <a href="inversion.html" target="_blank" class="viz-link vl-violet">
+              🔗 Abrir HTML
+            </a>
+            <a href="http://localhost:8501" target="_blank" class="viz-link vl-violet">
+              ⚡ Ver en App
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Precio Promedio -->
+      <div class="viz-card fade-in">
+        <div class="viz-preview viz-preview-3">
+          <span class="viz-emoji">📊</span>
+          <svg class="sparkline" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg">
+            <rect x="40"  y="25" width="80" height="55" rx="4" fill="rgba(56,189,248,0.5)"/>
+            <rect x="160" y="5"  width="80" height="75" rx="4" fill="rgba(248,113,113,0.5)"/>
+            <rect x="280" y="40" width="80" height="40" rx="4" fill="rgba(52,211,153,0.5)"/>
+          </svg>
+        </div>
+        <div class="viz-body">
+          <h3>📊 Precio Promedio</h3>
+          <p>Comparativa del <strong>precio medio de cierre</strong> de cada empresa
+          durante todo el período. Gráfico de barras con valores etiquetados.
+          MSFT lidera con ~$446 USD de promedio.</p>
+          <div class="viz-links">
+            <a href="precio_promedio.html" target="_blank" class="viz-link vl-cyan">
+              🔗 Abrir HTML
+            </a>
+            <a href="http://localhost:8501" target="_blank" class="viz-link vl-cyan">
+              ⚡ Ver en App
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════ DOCUMENTACIÓN ══════════════ -->
+<section class="section doc-bg" id="documentacion">
+  <div class="container">
+    <div class="section-tag">📚 Recursos</div>
+    <h2 class="section-title">Documentación <span class="gradient-text">del Proyecto</span></h2>
+    <p class="section-desc">
+      Todos los artefactos y recursos del proyecto disponibles para revisión y descarga.
+    </p>
+
+    <div class="doc-grid">
+
+      <a href="app.py" class="doc-card fade-in" download>
+        <div class="doc-icon" style="background:rgba(99,102,241,0.15)">🐍</div>
+        <h3>app.py</h3>
+        <p>Aplicación principal de Streamlit con landing page, dashboard interactivo
+        de 5 tabs, visualizaciones y documentación técnica. Diseño glassmorphism dark.</p>
+        <span class="doc-tag" style="background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.3);color:var(--primary-l)">Python · Streamlit</span>
+      </a>
+
+      <a href="DataPython.ipynb" class="doc-card fade-in" download>
+        <div class="doc-icon" style="background:rgba(245,158,11,0.15)">📓</div>
+        <h3>DataPython.ipynb</h3>
+        <p>Notebook Jupyter original desarrollado en Google Colab. Contiene el flujo
+        completo de descarga de datos, visualización con Plotly y generación de informe
+        con Gemini AI.</p>
+        <span class="doc-tag" style="background:rgba(245,158,11,0.12);border-color:rgba(245,158,11,0.3);color:var(--amber-l)">Jupyter · Google Colab</span>
+      </a>
+
+      <a href="precios_acciones.csv" class="doc-card fade-in" download>
+        <div class="doc-icon" style="background:rgba(16,185,129,0.15)">📊</div>
+        <h3>precios_acciones.csv</h3>
+        <p>Dataset principal con 251 registros de precios de cierre ajustados de AAPL,
+        MSFT y NVDA durante septiembre 2025 – septiembre 2026. Fuente: Yahoo Finance.</p>
+        <span class="doc-tag" style="background:rgba(16,185,129,0.12);border-color:rgba(16,185,129,0.3);color:var(--green-l)">CSV · yfinance</span>
+      </a>
+
+      <a href="README.md" class="doc-card fade-in" target="_blank">
+        <div class="doc-icon" style="background:rgba(139,92,246,0.15)">📄</div>
+        <h3>README.md</h3>
+        <p>Documentación principal del repositorio con badges de tecnologías, instrucciones
+        de instalación, estructura del proyecto y guía de despliegue en Streamlit Cloud.</p>
+        <span class="doc-tag" style="background:rgba(139,92,246,0.12);border-color:rgba(139,92,246,0.3);color:var(--violet-l)">Markdown · GitHub</span>
+      </a>
+
+      <a href="DOCUMENTACION.md" class="doc-card fade-in" target="_blank">
+        <div class="doc-icon" style="background:rgba(6,182,212,0.15)">📚</div>
+        <h3>DOCUMENTACION.md</h3>
+        <p>Guía técnica completa con 14 secciones: arquitectura, dataset, notebook,
+        visualizaciones HTML, código de la app, guía paso a paso de instalación,
+        despliegue en Streamlit Cloud y preguntas frecuentes.</p>
+        <span class="doc-tag" style="background:rgba(6,182,212,0.12);border-color:rgba(6,182,212,0.3);color:var(--cyan-l)">Guía técnica · 14 secciones</span>
+      </a>
+
+      <a href="requirements.txt" class="doc-card fade-in" download>
+        <div class="doc-icon" style="background:rgba(239,68,68,0.15)">📋</div>
+        <h3>requirements.txt</h3>
+        <p>Archivo de dependencias Python requeridas para ejecutar la aplicación localmente
+        y en Streamlit Cloud: streamlit, pandas, plotly, numpy.</p>
+        <span class="doc-tag" style="background:rgba(239,68,68,0.12);border-color:rgba(239,68,68,0.3);color:var(--red-l)">pip · Streamlit Cloud</span>
+      </a>
+
+    </div>
+
+    <!-- Visualizaciones HTML como docs adicionales -->
+    <h3 style="margin-top:3rem;font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:1rem;">
+      🌐 Visualizaciones HTML Interactivas
+    </h3>
+    <div class="doc-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+
+      <a href="cotizacion_historica.html" target="_blank" class="doc-card fade-in">
+        <div class="doc-icon" style="background:rgba(99,102,241,0.15)">📉</div>
+        <h3>cotizacion_historica.html</h3>
+        <p>Gráfico de líneas Plotly con la evolución histórica de precios de cierre. Incluye zoom, pan y hover detallado.</p>
+        <span class="doc-tag" style="background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.3);color:var(--primary-l)">Plotly · HTML</span>
+      </a>
+
+      <a href="inversion.html" target="_blank" class="doc-card fade-in">
+        <div class="doc-icon" style="background:rgba(139,92,246,0.15)">💰</div>
+        <h3>inversion.html</h3>
+        <p>Simulación del valor de $1,000 USD invertidos al inicio. Línea base de capital y valores finales por empresa.</p>
+        <span class="doc-tag" style="background:rgba(139,92,246,0.12);border-color:rgba(139,92,246,0.3);color:var(--violet-l)">Plotly · HTML</span>
+      </a>
+
+      <a href="precio_promedio.html" target="_blank" class="doc-card fade-in">
+        <div class="doc-icon" style="background:rgba(6,182,212,0.15)">📊</div>
+        <h3>precio_promedio.html</h3>
+        <p>Gráfico de barras con precios promedios etiquetados por empresa. Colores diferenciados por ticker.</p>
+        <span class="doc-tag" style="background:rgba(6,182,212,0.12);border-color:rgba(6,182,212,0.3);color:var(--cyan-l)">Plotly · HTML</span>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════ DATASET ══════════════ -->
+<section class="section" id="dataset">
+  <div class="container">
+    <div class="section-tag">🗃️ Datos</div>
+    <h2 class="section-title">El <span class="gradient-text">Dataset</span></h2>
+    <div class="dataset-layout fade-in">
+
+      <div>
+        <div class="table-wrapper">
+          <div class="table-header">
+            📁 precios_acciones.csv — Estructura del Schema
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Campo</th>
+                <th>Tipo</th>
+                <th>Descripción</th>
+                <th>Ejemplo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Date</strong></td>
+                <td><span class="badge badge-cyan" style="font-size:0.65rem;padding:0.15rem 0.5rem">datetime</span></td>
+                <td>Fecha de negociación (días hábiles)</td>
+                <td class="mono">2025-09-19</td>
+              </tr>
+              <tr>
+                <td><strong>AAPL</strong></td>
+                <td><span class="badge badge-indigo" style="font-size:0.65rem;padding:0.15rem 0.5rem">float64</span></td>
+                <td>Precio cierre ajustado Apple Inc.</td>
+                <td class="mono">244.596</td>
+              </tr>
+              <tr>
+                <td><strong>MSFT</strong></td>
+                <td><span class="badge badge-indigo" style="font-size:0.65rem;padding:0.15rem 0.5rem">float64</span></td>
+                <td>Precio cierre ajustado Microsoft</td>
+                <td class="mono">513.703</td>
+              </tr>
+              <tr>
+                <td><strong>NVDA</strong></td>
+                <td><span class="badge badge-indigo" style="font-size:0.65rem;padding:0.15rem 0.5rem">float64</span></td>
+                <td>Precio cierre ajustado Nvidia</td>
+                <td class="mono">176.247</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-wrapper" style="margin-top:1.2rem">
+          <div class="table-header">
+            📈 Resumen de Rendimiento — Período Completo
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Empresa</th>
+                <th>Precio Inicial</th>
+                <th>Precio Final</th>
+                <th>Promedio</th>
+                <th>Variación</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong style="color:var(--primary-l)">🍎 AAPL</strong></td>
+                <td class="mono">$244.60</td>
+                <td class="mono">$336.13</td>
+                <td class="mono">~$281</td>
+                <td><strong style="color:var(--green-l)">+37.4% ▲</strong></td>
+              </tr>
+              <tr>
+                <td><strong style="color:var(--red-l)">🪟 MSFT</strong></td>
+                <td class="mono">$513.70</td>
+                <td class="mono">$493.78</td>
+                <td class="mono">~$446</td>
+                <td><strong style="color:var(--red-l)">−3.9% ▼</strong></td>
+              </tr>
+              <tr>
+                <td><strong style="color:var(--green-l)">💚 NVDA</strong></td>
+                <td class="mono">$176.25</td>
+                <td class="mono">$222.27</td>
+                <td class="mono">~$196</td>
+                <td><strong style="color:var(--green-l)">+26.1% ▲</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="dataset-info">
+        <div class="info-card">
+          <div class="label">📅 Período de Análisis</div>
+          <div class="value gradient-text">Sep 2025 → Sep 2026</div>
+        </div>
+        <div class="info-card">
+          <div class="label">📊 Total de Registros</div>
+          <div class="value" style="color:var(--violet-l)">251 días hábiles</div>
+        </div>
+        <div class="info-card">
+          <div class="label">🔗 Fuente de Datos</div>
+          <div class="value" style="color:var(--cyan-l)">Yahoo Finance</div>
+          <div style="font-size:0.75rem;color:var(--muted);margin-top:0.3rem">vía librería <code>yfinance</code></div>
+        </div>
+        <div class="info-card">
+          <div class="label">💰 Simulación de Inversión ($1,000 USD)</div>
+          <div style="display:flex;flex-direction:column;gap:0.4rem;margin-top:0.4rem">
+            <div style="display:flex;justify-content:space-between;font-size:0.85rem">
+              <span style="color:var(--primary-l)">🍎 AAPL</span>
+              <strong style="color:var(--green-l)">$1,374 (+37.4%)</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:0.85rem">
+              <span style="color:var(--red-l)">🪟 MSFT</span>
+              <strong style="color:var(--red-l)">$961 (−3.9%)</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:0.85rem">
+              <span style="color:var(--green-l)">💚 NVDA</span>
+              <strong style="color:var(--green-l)">$1,261 (+26.1%)</strong>
+            </div>
+          </div>
+        </div>
+        <a href="precios_acciones.csv" download class="btn btn-ghost" style="justify-content:center;font-size:0.82rem;padding:0.6rem 1rem">
+          ⬇️ Descargar precios_acciones.csv
+        </a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════ TECH STACK ══════════════ -->
+<section class="section tech-bg" id="tecnologia">
+  <div class="container">
+    <div class="section-tag">🔧 Herramientas</div>
+    <h2 class="section-title">Stack <span class="gradient-text">Tecnológico</span></h2>
+    <div class="tech-grid">
+      <div class="tech-card fade-in">
+        <div class="icon">🐍</div>
+        <div class="name">Python</div>
+        <div class="version">v3.11+</div>
+        <div class="role">Lenguaje base del proyecto</div>
+      </div>
+      <div class="tech-card fade-in">
+        <div class="icon">⚡</div>
+        <div class="name">Streamlit</div>
+        <div class="version">v1.57+</div>
+        <div class="role">Framework web para apps de datos</div>
+      </div>
+      <div class="tech-card fade-in">
+        <div class="icon">🐼</div>
+        <div class="name">Pandas</div>
+        <div class="version">v3.0+</div>
+        <div class="role">Manipulación y análisis de datos</div>
+      </div>
+      <div class="tech-card fade-in">
+        <div class="icon">📊</div>
+        <div class="name">Plotly</div>
+        <div class="version">v6.6+</div>
+        <div class="role">Visualizaciones interactivas</div>
+      </div>
+      <div class="tech-card fade-in">
+        <div class="icon">🔢</div>
+        <div class="name">NumPy</div>
+        <div class="version">v2.4+</div>
+        <div class="role">Computación numérica</div>
+      </div>
+      <div class="tech-card fade-in">
+        <div class="icon">📈</div>
+        <div class="name">yfinance</div>
+        <div class="version">v0.2+</div>
+        <div class="role">Descarga de datos bursátiles</div>
+      </div>
+      <div class="tech-card fade-in">
+        <div class="icon">🤖</div>
+        <div class="name">Gemini AI</div>
+        <div class="version">v0.8+</div>
+        <div class="role">Informe automático con IA</div>
+      </div>
+      <div class="tech-card fade-in">
+        <div class="icon">🐙</div>
+        <div class="name">GitHub</div>
+        <div class="version">—</div>
+        <div class="role">Control de versiones y CI/CD</div>
+      </div>
+      <div class="tech-card fade-in">
+        <div class="icon">☁️</div>
+        <div class="name">Streamlit Cloud</div>
+        <div class="version">—</div>
+        <div class="role">Hosting gratuito de la app</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════ INSTALACIÓN ══════════════ -->
+<section class="section install-bg" id="instalacion">
+  <div class="container">
+    <div class="section-tag">🚀 Inicio Rápido</div>
+    <h2 class="section-title">Cómo <span class="gradient-text">Ejecutar</span></h2>
+    <p class="section-desc">
+      La aplicación se puede ejecutar localmente en 4 pasos. Requiere Python 3.11+.
+    </p>
+    <div class="code-block fade-in">
+      <div class="code-block-header">
+        <span>📟 Terminal — PowerShell / CMD / Bash</span>
+        <div class="code-dots">
+          <div class="code-dot" style="background:#ef4444"></div>
+          <div class="code-dot" style="background:#f59e0b"></div>
+          <div class="code-dot" style="background:#10b981"></div>
+        </div>
+      </div>
+      <pre><span class="c-comment"># 1. Clonar el repositorio desde GitHub</span>
+<span class="c-cmd">git clone</span> <span class="c-url">https://github.com/feibert-ufhec/analisis-financiero-python.git</span>
+<span class="c-cmd">cd</span> analisis-financiero-python
+
+<span class="c-comment"># 2. Crear y activar entorno virtual (recomendado)</span>
+<span class="c-cmd">python -m venv</span> .venv
+<span class="c-cmd">.venv\Scripts\activate</span>          <span class="c-comment"># Windows</span>
+<span class="c-comment"># source .venv/bin/activate     # Linux / macOS</span>
+
+<span class="c-comment"># 3. Instalar dependencias</span>
+<span class="c-cmd">pip install</span> -r requirements.txt
+
+<span class="c-comment"># 4. Ejecutar la aplicación</span>
+<span class="c-cmd">streamlit run</span> app.py
+
+<span class="c-comment"># ✅ La app se abre en: http://localhost:8501</span></pre>
+    </div>
+
+    <div style="margin-top:2rem;display:grid;grid-template-columns:1fr 1fr;gap:1.2rem" class="fade-in">
+      <div class="info-card">
+        <div class="label">☁️ Despliegue en Streamlit Cloud</div>
+        <p style="font-size:0.82rem;color:var(--muted);margin-top:0.4rem;line-height:1.6">
+          1. Sube el repositorio a GitHub<br>
+          2. Ve a <a href="https://share.streamlit.io" target="_blank" style="color:var(--cyan-l)">share.streamlit.io</a><br>
+          3. Selecciona el repo → <code>app.py</code><br>
+          4. Haz clic en <strong>Deploy</strong> ✅
+        </p>
+      </div>
+      <div class="info-card">
+        <div class="label">📋 Dependencias (requirements.txt)</div>
+        <pre style="padding:0;margin-top:0.4rem;font-size:0.78rem;background:none;color:var(--muted)">streamlit&gt;=1.37.0
+pandas&gt;=2.0.0
+plotly&gt;=5.0.0
+numpy&gt;=1.24.0</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════ EQUIPO ══════════════ -->
+<section class="section" id="equipo">
+  <div class="container team-center">
+    <div class="section-tag">👥 Organización</div>
+    <h2 class="section-title">Quién lo <span class="gradient-text">Desarrolló</span></h2>
+    <p class="section-desc" style="margin:0 auto">
+      Proyecto académico desarrollado en el marco del Semillero de Datos y Tecnología
+      de la Universidad Francisco de Paula Santander Ocaña.
+    </p>
+    <div class="team-card fade-in">
+      <div class="team-avatar">🧑‍💻</div>
+      <div class="team-name">Feibert</div>
+      <div class="team-role">Analista de Datos · Desarrollador Full-Stack</div>
+      <div class="team-org">🏫 Universidad Francisco de Paula Santander Ocaña (UFHEC)<br>
+        Semillero de Datos · Python &amp; Ciencia de Datos · 2026
+      </div>
+      <div class="team-links">
+        <a href="https://github.com/feibert-ufhec/analisis-financiero-python" target="_blank"
+           style="background:rgba(99,102,241,0.15);border-color:rgba(99,102,241,0.4);color:var(--primary-l)">
+          🐙 GitHub
+        </a>
+        <a href="http://localhost:8501" target="_blank"
+           style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.4);color:var(--red-l)">
+          ⚡ Streamlit App
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════ CTA ══════════════ -->
+<section class="cta">
+  <div class="container">
+    <h2>¿Listo para explorar los <span class="gradient-text">datos financieros</span>?</h2>
+    <p>
+      Abre la aplicación interactiva, filtra por empresa y rango de fechas,
+      ajusta tu capital de inversión y descubre el rendimiento real de cada acción.
+    </p>
+    <div class="hero-buttons">
+      <a href="http://localhost:8501" target="_blank" class="btn btn-primary">
+        🚀 Abrir Aplicación Streamlit
+      </a>
+      <a href="cotizacion_historica.html" target="_blank" class="btn btn-ghost">
+        📉 Cotización Histórica
+      </a>
+      <a href="inversion.html" target="_blank" class="btn btn-ghost">
+        💰 Simulación Inversión
+      </a>
+      <a href="precio_promedio.html" target="_blank" class="btn btn-ghost">
+        📊 Precio Promedio
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ FOOTER ══════════════ -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <div class="brand">📊 Análisis Financiero con Python</div>
+        <div class="copy">
+          © 2026 Feibert · UFHEC Semillero de Datos · Licencia MIT
+        </div>
+      </div>
+      <ul class="footer-links">
+        <li><a href="#inicio">Inicio</a></li>
+        <li><a href="#problema">Problema</a></li>
+        <li><a href="#objetivos">Objetivos</a></li>
+        <li><a href="#visualizaciones">Visualizaciones</a></li>
+        <li><a href="#documentacion">Docs</a></li>
+        <li><a href="#dataset">Dataset</a></li>
+        <li><a href="#equipo">Equipo</a></li>
+        <li><a href="http://localhost:8501" target="_blank" style="color:var(--primary-l);font-weight:600">🚀 App</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<!-- ══════════════ SCRIPTS ══════════════ -->
+<script>
+  // Scroll fade-in animations
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    },
+    { threshold: 0.12 }
+  );
+  document.querySelectorAll('.fade-in').forEach((el) => observer.observe(el));
+
+  // Stagger children inside grids
+  document.querySelectorAll('.viz-grid, .smart-grid, .doc-grid, .tech-grid').forEach((grid) => {
+    Array.from(grid.children).forEach((child, i) => {
+      child.style.transitionDelay = `${i * 80}ms`;
+    });
+  });
+
+  // Active nav link highlight on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav-links a[href^="#"]');
+
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach((section) => {
+      if (window.scrollY >= section.offsetTop - 120) {
+        current = section.getAttribute('id');
+      }
+    });
+    navLinks.forEach((link) => {
+      link.style.color = '';
+      link.style.background = '';
+      if (link.getAttribute('href') === `#${current}`) {
+        link.style.color = 'var(--text)';
+        link.style.background = 'var(--glass)';
+      }
+    });
+  }, { passive: true });
+</script>
+
+</body>
+</html>
